@@ -44,8 +44,8 @@ buildParams = function(convergenceSampleSize=20000,
                           estimateR0=FALSE),
                      list(seed=6612314, 
                           outFileName="./chain_output_influenza_3.txt", 
-                          modelComponents=modelComponents),
-                     estimateR0=FALSE)
+                          modelComponents=modelComponents,
+                          estimateR0=FALSE))
   runParams =list(convergenceSampleSize=convergenceSampleSize,
                   convergenceCriterion=convergenceCriterion,
                   extraR0Iterations=extraR0Iterations, 
@@ -136,9 +136,9 @@ buildNode = function(x, nodeParams=NA)
   }
   
   
-  for (i in 1:1000)
+  for (i in 1:100)
   {
-    res$simulate(1000)
+    res$simulate(500)
     res$updateSamplingParameters(0.2, 0.05, 0.01)
   }
   res$parameterSamplingMode = 7
@@ -171,17 +171,17 @@ finishSimulation = function(iterationNumber)
   ## Do we need to estimate R0 for this chain?
   if (params[["estimateR0"]])
   {  
-    R0 = array(0, dim = c(nrow(modelComponents$I_star), ncol(modelComponents$I_star), extraR0Iterations))
-    effectiveR0 = array(0, dim = c(nrow(modelComponents$I_star), ncol(modelComponents$I_star), extraR0Iterations))
-    empiricalR0 = array(0, dim = c(nrow(modelComponents$I_star), ncol(modelComponents$I_star), extraR0Iterations))
-    for (i in 1:extraR0Iterations)
+    R0 = array(0, dim = c(nrow(modelComponents$I_star), ncol(modelComponents$I_star), parameterList$runParams$extraR0Iterations))
+    effectiveR0 = array(0, dim = c(nrow(modelComponents$I_star), ncol(modelComponents$I_star), parameterList$runParams$extraR0Iterations))
+    empiricalR0 = array(0, dim = c(nrow(modelComponents$I_star), ncol(modelComponents$I_star), parameterList$runParams$extraR0Iterations))
+    for (i in 1:parameterList$runParams$extraR0Iterations)
     {
-      localModelObject$simulate(extraR0BatchSize)
+      localModelObject$simulate(1000)
       for (j in 0:(nrow(modelComponents$I_star)-1))
       {
-        R0[j,,i] = localModelObject$estimateR0(j)
-        effectiveR0[j,,i] = localModelObject$estimateEffectiveR0(j)
-        empiricalR0[j,,i] = apply(localModelObject$getIntegratedGenerationMatrix(j), 1, sum)
+        R0[j+1,,i] = localModelObject$estimateR0(j)
+        effectiveR0[j+1,,i] = localModelObject$estimateEffectiveR0(j)
+        empiricalR0[j+1,,i] = apply(localModelObject$getIntegratedGenerationMatrix(j), 1, sum)
       }
     }
     
