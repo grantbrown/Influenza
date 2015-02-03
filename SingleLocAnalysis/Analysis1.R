@@ -8,7 +8,7 @@ pred.days = 120
 totalSamples = 0
 minimumSamples = 1000000
 parameterList = buildParams(convergenceSampleSize = 10000,
-                            convergenceCriterion = 1.05, 
+                            convergenceCriterion = 1.02, 
                             extraR0Iterations = 100, 
                             iterationStride = 1000)
 

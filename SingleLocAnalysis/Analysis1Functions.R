@@ -6,6 +6,13 @@ buildParams = function(convergenceSampleSize=20000,
   cases = filter(select(read.csv("../Data/DataProcessing/processedData.csv"),
                         YEAR, WEEK, CASES_WNC),
                  YEAR >= 2008 & YEAR <= 2009)
+  #casesOld = filter(select(read.csv("../Data/DataProcessing/processedData.csv"),
+  #                      YEAR, WEEK, CASES_WNC),
+  #               YEAR >= 2006 & YEAR <= 2007)
+  #casesOld2 = filter(select(read.csv("../Data/DataProcessing/processedData.csv"),
+  #                         YEAR, WEEK, CASES_WNC),
+  #                  YEAR >= 2004 & YEAR <= 2005)
+  
   cases = rename(cases, CASES = CASES_WNC)
   
   N = as.numeric(filter(read.csv("../Data/DataProcessing/summaryPopulation.csv"), 
@@ -13,14 +20,19 @@ buildParams = function(convergenceSampleSize=20000,
   N = matrix(N, ncol=1, nrow=nrow(cases))
   
   timeIndex = (cases$WEEK )/52*2*pi
-  
+  overallWeek = (cases$YEAR - 2008)*52 + cases$WEEK
   
   # Create Co-variates
   X = matrix(1)
-  Z = cbind(sin(timeIndex), cos(timeIndex), sin(timeIndex)*cos(timeIndex))
+  Z = cbind(sin(timeIndex), cos(timeIndex))
   
-  X_prs = cbind(matrix(1, nrow = nrow(cases), ncol = 1),
-                cases$YEAR == 2009 & cases$WEEK == 16) # Indicator for H1N1 introduction
+  
+  X_prs = matrix(1*(overallWeek == 5), ncol = 1)
+  for (i in seq(10,nrow(cases), 5)){
+    X_prs = cbind(X_prs, 1*(overallWeek == i))
+  }
+  #X_prs = cbind(matrix(1, nrow = nrow(cases), ncol = 1),
+  #              cases$YEAR == 2009 & cases$WEEK == 16) # Indicator for H1N1 introduction
   
   modelComponents = list(I_star=matrix(cases$CASES, ncol = 1),
                          N=N,
@@ -82,9 +94,9 @@ buildNode = function(x, nodeParams=NA)
                                               rep(0, ((length(modelComponents$beta_SE))-1))), 
                                      betaPriorPrecision = 0.1)
   ReinfectionModel = buildReinfectionModel("SEIRS", X_prs = modelComponents$X_RS, 
-                                           betaPrs = -c(1, rep(0,(length(modelComponents$beta_RS)-1))), 
-                                           priorMean = c(-2, 3),
-                                           priorPrecision = c(100000000, 100000))
+                                           betaPrs = rep(-2, ncol(modelComponents$X_RS)), 
+                                           priorMean = rep(-2, ncol(modelComponents$X_RS)),
+                                           priorPrecision = rep(1, ncol(modelComponents$X_RS)))
   SamplingControl = buildSamplingControl(iterationStride=1000,
                                          sliceWidths = c(0.26,  # S_star
                                                          0.1,  # E_star
@@ -116,13 +128,6 @@ buildNode = function(x, nodeParams=NA)
   res$setRandomSeed(seed)
   res$setTrace(0)
   
-  # Shrink initial compartment guesses towards initial parameter guesses
-  res$parameterSamplingMode = 17
-  res$compartmentSamplingMode=16
-  res$simulate(500)
-  
-  res$parameterSamplingMode = 8
-  res$compartmentSamplingMode=1
   # Burn in tuning parameters
   for (i in 1:200)
   {
