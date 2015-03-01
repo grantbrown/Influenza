@@ -1,8 +1,8 @@
 
 buildParams = function(convergenceSampleSize=20000,
-                       convergenceCriterion = 1.05, 
-                       extraR0Iterations = 100, 
-                       iterationStride = 1000){
+                       convergenceCriterion = 1.02, 
+                       extraR0Iterations = 1000, 
+                       iterationStride = 10000){
   cases = filter(select(read.csv("../Data/DataProcessing/processedData.csv"),
                         YEAR, WEEK, CASES_WNC),
                  YEAR >= 2008 & YEAR <= 2009)
@@ -95,9 +95,9 @@ buildNode = function(x, nodeParams=NA)
                                      betaPriorPrecision = 0.1)
   ReinfectionModel = buildReinfectionModel("SEIRS", X_prs = modelComponents$X_RS, 
                                            betaPrs = rep(-2, ncol(modelComponents$X_RS)), 
-                                           priorMean = rep(-2, ncol(modelComponents$X_RS)),
+                                           priorMean = rep(-4, ncol(modelComponents$X_RS)),
                                            priorPrecision = rep(1, ncol(modelComponents$X_RS)))
-  SamplingControl = buildSamplingControl(iterationStride=1000,
+  SamplingControl = buildSamplingControl(iterationStride=10000,
                                          sliceWidths = c(0.26,  # S_star
                                                          0.1,  # E_star
                                                          0.15, # I_star
@@ -146,8 +146,8 @@ buildNode = function(x, nodeParams=NA)
     res$simulate(500)
     res$updateSamplingParameters(0.2, 0.05, 0.01)
   }
-  res$parameterSamplingMode = 7
-  #res$compartmentSamplingMode = 17
+  res$parameterSamplingMode = 8
+  res$compartmentSamplingMode = 17
   res$useDecorrelation = 10
   res$performHybridStep = 10
   

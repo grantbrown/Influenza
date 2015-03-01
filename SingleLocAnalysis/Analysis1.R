@@ -10,7 +10,7 @@ minimumSamples = 1000000
 parameterList = buildParams(convergenceSampleSize = 10000,
                             convergenceCriterion = 1.02, 
                             extraR0Iterations = 100, 
-                            iterationStride = 1000)
+                            iterationStride = 10000)
 
 
 cl = makeCluster(3, outfile = "err.txt")
@@ -22,7 +22,7 @@ iterationParams = list(convergenceSampleSize=parameterList$runParams$convergence
                        targetAcceptanceRatio=0.2,   
                        tolerance=0.05,
                        proportionChange = 0.1,
-                       updateSamplingParams = TRUE)
+                       updateSamplingParams = FALSE)
 
 
 iterationParams = list(iterationParams, iterationParams, iterationParams)
