@@ -4,6 +4,8 @@ dat = read.csv("../FluViewPhase2Data/ILINet.csv", skip=1)
 # Laboratory Data
 labDat = read.csv("../FluViewPhase2Data/WHO_NREVSS.csv")
 
+
+## Part 1: Smooth convolution of Lab and ILI Data
 f = function(x){
   ifelse(x == "East North Central", "ENC",
   ifelse(x == "East South Central", "ESC",
@@ -67,5 +69,46 @@ for (i in 2:length(subsets)){
 }
 write.csv(outDat, "processedData.csv", row.names = FALSE)
 
+## Part 2: Raw Influenza data
 
+dat = read.csv("../FluViewPhase2Data/ILINet.csv", skip=1)
+f = function(x){
+  ifelse(x == "East North Central", "ENC",
+  ifelse(x == "East South Central", "ESC",
+  ifelse(x == "Mid-Atlantic", "MAT",
+  ifelse(x == "Mountain", "MTN",        
+  ifelse(x == "New England", "NEW",
+  ifelse(x == "Pacific", "PAC",       
+  ifelse(x == "South Atlantic", "SAT",
+  ifelse(x == "West North Central", "WNC",
+  ifelse(x == "West South Central", "WSC", "UNK")))))))))
+}
 
+dat = filter(group_by(select(mutate(dat, Region = f(REGION), 
+                                    CASES = floor(1000*X.UNWEIGHTED.ILI)), 
+                             Region, YEAR, WEEK, CASES), Region), 
+             !is.na(CASES))
+
+dat = select(dat, Region, YEAR, WEEK, CASES)
+f = function(region, data){
+  data[data$Region == region,]
+}
+uqLoc = unique(dat$Region)
+subsets = lapply(uqLoc, f, data = dat)
+
+outDat = subsets[[1]]
+outDat[[paste("CASES", uqLoc[1], sep = "_")]] = outDat$CASES
+outDat = ungroup(outDat)
+outDat = outDat[,which(names(outDat) != "CASES" & names(outDat) != "Region")]
+
+for (i in 2:length(subsets)){
+  subsets[[i]][[paste("CASES", uqLoc[i], sep ="_")]] = subsets[[i]]$CASES
+  subsets[[i]] = ungroup(subsets[[i]])[,(names(subsets[[i]]) != "CASES" &
+                                           names(subsets[[i]]) != "Region")]
+  outDat = left_join(outDat, subsets[[i]], by=c("YEAR", "WEEK"))
+}
+
+outDat = mutate(subset(outDat, YEAR > 2003), 
+                timeIndex = (YEAR - 1997)*52 + WEEK)
+write.csv(outDat, "processedDataNoSmooth.csv", row.names = FALSE)
+                
