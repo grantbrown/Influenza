@@ -27,12 +27,12 @@ buildParams = function(convergenceSampleSize=20000,
   Z = cbind(sin(timeIndex), cos(timeIndex))
   
   
-  X_prs = matrix(1*(overallWeek == 5), ncol = 1)
-  for (i in seq(10,nrow(cases), 5)){
-    X_prs = cbind(X_prs, 1*(overallWeek == i))
-  }
-  #X_prs = cbind(matrix(1, nrow = nrow(cases), ncol = 1),
-  #              cases$YEAR == 2009 & cases$WEEK == 16) # Indicator for H1N1 introduction
+  #X_prs = matrix(1*(overallWeek == 5), ncol = 1)
+  #for (i in seq(10,nrow(cases), 5)){
+  #  X_prs = cbind(X_prs, 1*(overallWeek == i))
+  #}
+  X_prs = cbind(matrix(1, nrow = nrow(cases), ncol = 1),
+                cases$YEAR == 2009 & cases$WEEK == 16) # Indicator for H1N1 introduction
   
   modelComponents = list(I_star=matrix(cases$CASES, ncol = 1),
                          N=N,
@@ -89,14 +89,14 @@ buildNode = function(x, nodeParams=NA)
                              params = c(100000,1000))
   
   priorBetaIntercept = log(mean(-log(1-(modelComponents$I_star/(modelComponents$N))))) 
-  ExposureModel = buildExposureModel(modelComponents$X, modelComponents$Z, 
-                                     beta = c(priorBetaIntercept, 
-                                              rep(0, ((length(modelComponents$beta_SE))-1))), 
+  ExposureModel = buildExposureModel_depricated(modelComponents$X, modelComponents$Z, 
+                                     beta = c(priorBetaIntercept + rnorm(1), 
+                                              rnorm(((length(modelComponents$beta_SE))-1))), 
                                      betaPriorPrecision = 0.1)
   ReinfectionModel = buildReinfectionModel("SEIRS", X_prs = modelComponents$X_RS, 
-                                           betaPrs = rep(-2, ncol(modelComponents$X_RS)), 
-                                           priorMean = rep(-4, ncol(modelComponents$X_RS)),
-                                           priorPrecision = rep(1, ncol(modelComponents$X_RS)))
+                                           betaPrs = rnorm(ncol(modelComponents$X_RS)) + rep(-5, ncol(modelComponents$X_RS)), 
+                                           priorMean = rep(-5, ncol(modelComponents$X_RS)),
+                                           priorPrecision = rep(10, ncol(modelComponents$X_RS)))
   SamplingControl = buildSamplingControl(iterationStride=10000,
                                          sliceWidths = c(0.26,  # S_star
                                                          0.1,  # E_star
@@ -146,7 +146,7 @@ buildNode = function(x, nodeParams=NA)
     res$simulate(500)
     res$updateSamplingParameters(0.2, 0.05, 0.01)
   }
-  res$parameterSamplingMode = 8
+  res$parameterSamplingMode = 7
   res$compartmentSamplingMode = 17
   res$useDecorrelation = 10
   res$performHybridStep = 10
