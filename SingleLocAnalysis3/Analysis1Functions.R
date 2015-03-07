@@ -43,8 +43,7 @@ buildParams = function(convergenceSampleSize=20000,
                        extraR0Iterations = 100, 
                        iterationStride = 1000){
   selectedYears = c(2008, 2009)
-  cases = filter(select(read.csv("../Data/DataProcessing/processedDataNoSmooth.csv"),
-                         -timeIndex),
+  cases = filter(read.csv("../Data/DataProcessing/processedData.csv"),
                  YEAR %in% selectedYears)
   monthlyTemp.sub = monthlyTemp[monthlyTemp$year %in% selectedYears,]
   includedYears = unique(cases$YEAR)
@@ -85,8 +84,10 @@ buildParams = function(convergenceSampleSize=20000,
   
   facData.standard = (facData - mean(as.matrix(facData)))/sd(as.matrix(facData))
     
-  N = matrix(100000, nrow=nrow(cases), ncol = ncol(facData.standard))
   
+  N = read.csv("../Data/DataProcessing/summaryPopulation.csv")
+  N = N[order(N$Region),]
+  N = matrix(N$pop, ncol=nrow(N), nrow=nrow(cases), byrow=TRUE)
   
   timeIndex = 1:nrow(cases)
   #trigBasis1 = sin((timeIndex + 10)/52*2*pi)
