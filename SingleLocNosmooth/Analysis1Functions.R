@@ -128,7 +128,7 @@ buildParams = function(convergenceSampleSize=20000,
                          beta_RS=c(-4, 0),
                          gamma_ei=4, # incubation is 1-4 days, so weekly data transition prob is almost 1
                          gamma_ir=2, # 5-7 day infectious period
-                         effectiveTransitionSampleSize=100000
+                         effectiveTransitionSampleSize=1000
   )
   
   modelParams = list(list(seed=1901924, 
