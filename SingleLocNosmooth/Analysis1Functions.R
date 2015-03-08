@@ -42,7 +42,7 @@ buildParams = function(convergenceSampleSize=20000,
                        convergenceCriterion = 1.05, 
                        extraR0Iterations = 100, 
                        iterationStride = 1000){
-  selectedYears = c(2008, 2009)
+  selectedYears = c(2008, 2009, 2010)
   cases = filter(select(read.csv("../Data/DataProcessing/processedDataNoSmooth.csv"),
                          -timeIndex),
                  YEAR %in% selectedYears)
@@ -95,9 +95,8 @@ buildParams = function(convergenceSampleSize=20000,
   X = matrix(1, nrow = ncol(facData.standard), ncol = 1)
   Z = matrix(as.numeric(as.matrix(facData.standard)), ncol = 1)
   
-  
-  X_prs = matrix(1, nrow = nrow(cases), ncol = 1)
-    
+  X_prs = cbind(1, matrix(dnorm(5*sin((seq(1, nrow(cases)) + 12)/52*pi), sd = 2), nrow = nrow(cases)))
+
   I_star = as.matrix(cases[,(3:11)[order(names(cases)[3:11])]])
   
   
@@ -180,9 +179,9 @@ buildNode = function(x, nodeParams=NA)
                                               rep(0, ((length(modelComponents$beta_SE))-1))), 
                                      betaPriorPrecision = 0.1, betaPriorMean = 0)
   ReinfectionModel = buildReinfectionModel("SEIRS", X_prs = modelComponents$X_RS, 
-                                           betaPrs = rep(-2, ncol(modelComponents$X_RS)), 
-                                           priorMean = rep(-2, ncol(modelComponents$X_RS)),
-                                           priorPrecision = rep(1, ncol(modelComponents$X_RS)))
+                                           betaPrs = c(-4, -1), 
+                                           priorMean = c(-4, -1),
+                                           priorPrecision = c(1000, 10))
   SamplingControl = buildSamplingControl(iterationStride=1000,
                                          sliceWidths = c(0.26,  # S_star
                                                          0.1,  # E_star
@@ -211,7 +210,7 @@ buildNode = function(x, nodeParams=NA)
   res = buildSEIRModel(outFileName,DataModel,ExposureModel,ReinfectionModel,DistanceModel,
                        TransitionPriors, InitContainer, SamplingControl)
   
-  res$setRandomSeed(seed)
+  res$setRandomSeed(seed + 1)
   for (i in 1:ncol(modelComponents$I_star)){
     res$setTrace(i-1)
   }
@@ -234,7 +233,7 @@ buildNode = function(x, nodeParams=NA)
     res$simulate(500)
     res$updateSamplingParameters(0.2, 0.05, 0.01)
   }
-  res$parameterSamplingMode = 7
+  res$parameterSamplingMode = 8
   res$compartmentSamplingMode = 17
   res$useDecorrelation = 10
   res$performHybridStep = 10

@@ -22,7 +22,7 @@ iterationParams = list(convergenceSampleSize=parameterList$runParams$convergence
                        targetAcceptanceRatio=0.2,   
                        tolerance=0.05,
                        proportionChange = 0.1,
-                       updateSamplingParams = TRUE)
+                       updateSamplingParams = FALSE)
 
 
 iterationParams = list(iterationParams, iterationParams, iterationParams)
