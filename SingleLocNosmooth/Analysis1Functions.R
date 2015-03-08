@@ -171,7 +171,7 @@ buildNode = function(x, nodeParams=NA)
   
   DataModel = buildDataModel(modelComponents$I_star, 
                              type = "overdispersion", 
-                             phi = 1)
+                             phi = phi=1)
   
   priorBetaIntercept = log(mean(-log(1-(modelComponents$I_star/(modelComponents$N))))) 
   ExposureModel = buildExposureModel_depricated(modelComponents$X, modelComponents$Z, 
