@@ -42,9 +42,8 @@ buildParams = function(convergenceSampleSize=20000,
                        convergenceCriterion = 1.05, 
                        extraR0Iterations = 100, 
                        iterationStride = 1000){
-  selectedYears = c(2008, 2009, 2010)
-  cases = filter(select(read.csv("../Data/DataProcessing/processedDataNoSmooth.csv"),
-                         -timeIndex),
+  selectedYears = c(2008, 2009)
+  cases = filter(read.csv("../Data/DataProcessing/processedData.csv"),
                  YEAR %in% selectedYears)
   monthlyTemp.sub = monthlyTemp[monthlyTemp$year %in% selectedYears,]
   includedYears = unique(cases$YEAR)
@@ -85,8 +84,10 @@ buildParams = function(convergenceSampleSize=20000,
   
   facData.standard = (facData - mean(as.matrix(facData)))/sd(as.matrix(facData))
     
-  N = matrix(100000, nrow=nrow(cases), ncol = ncol(facData.standard))
   
+  N = read.csv("../Data/DataProcessing/summaryPopulation.csv")
+  N = N[order(N$Region),]
+  N = matrix(N$pop, ncol=nrow(N), nrow=nrow(cases), byrow=TRUE)
   
   timeIndex = 1:nrow(cases)
   #trigBasis1 = sin((timeIndex + 10)/52*2*pi)
@@ -95,8 +96,9 @@ buildParams = function(convergenceSampleSize=20000,
   X = matrix(1, nrow = ncol(facData.standard), ncol = 1)
   Z = matrix(as.numeric(as.matrix(facData.standard)), ncol = 1)
   
-  X_prs = cbind(1, matrix(dnorm(5*sin((seq(1, nrow(cases)) + 12)/52*pi), sd = 2), nrow = nrow(cases)))
-
+  
+  X_prs = matrix(1, nrow = nrow(cases), ncol = 1)
+    
   I_star = as.matrix(cases[,(3:11)[order(names(cases)[3:11])]])
   
   
@@ -180,9 +182,9 @@ buildNode = function(x, nodeParams=NA)
                                      betaPriorPrecision = 0.1, betaPriorMean = 0,
                                      offset=rep(7, nrow(modelComponents$I_star)))
   ReinfectionModel = buildReinfectionModel("SEIRS", X_prs = modelComponents$X_RS, 
-                                           betaPrs = c(-4, -1), 
-                                           priorMean = c(-4, -1),
-                                           priorPrecision = c(1000, 10))
+                                           betaPrs = rep(-2, ncol(modelComponents$X_RS)), 
+                                           priorMean = rep(-2, ncol(modelComponents$X_RS)),
+                                           priorPrecision = rep(1, ncol(modelComponents$X_RS)))
   SamplingControl = buildSamplingControl(iterationStride=1000,
                                          sliceWidths = c(0.26,  # S_star
                                                          0.1,  # E_star
@@ -211,7 +213,7 @@ buildNode = function(x, nodeParams=NA)
   res = buildSEIRModel(outFileName,DataModel,ExposureModel,ReinfectionModel,DistanceModel,
                        TransitionPriors, InitContainer, SamplingControl)
   
-  res$setRandomSeed(seed + 1)
+  res$setRandomSeed(seed)
   for (i in 1:ncol(modelComponents$I_star)){
     res$setTrace(i-1)
   }
@@ -234,7 +236,7 @@ buildNode = function(x, nodeParams=NA)
     res$simulate(500)
     res$updateSamplingParameters(0.2, 0.05, 0.01)
   }
-  res$parameterSamplingMode = 8
+  res$parameterSamplingMode = 7
   res$compartmentSamplingMode = 17
   res$useDecorrelation = 10
   res$performHybridStep = 10
