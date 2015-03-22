@@ -130,8 +130,8 @@ buildParams = function(convergenceSampleSize=20000,
                          dmList=dmList,
                          beta_SE=c(-4, rep(0, ncol(Z))),
                          beta_RS=rep(0.1, ncol(X_prs)),
-                         gamma_ei=4, # incubation is 1-4 days, so weekly data transition prob is almost 1
-                         gamma_ir=2, # 5-7 day infectious period
+                         gamma_ei=1, # incubation is 1-4 days, so weekly data transition prob is almost 1
+                         gamma_ir=0.5, # 5-7 day infectious period
                          singleLocation=singleLocation,
                          effectiveTransitionSampleSize=1000
   )
@@ -190,15 +190,16 @@ buildNode = function(x, nodeParams=NA)
                                              betaPrs = rep(0.1,ncol(modelComponents$X_RS)), 
                                              priorMean =  rep(0.1,ncol(modelComponents$X_RS)),
                                              priorPrecision =  rep(1,ncol(modelComponents$X_RS)))
+    
     SamplingControl = buildSamplingControl(iterationStride=1000,
-                                           sliceWidths = c(0.26,  # S_star
-                                                           0.1,  # E_star
-                                                           0.15, # I_star
-                                                           0.22, # S0
-                                                           0.24, # I0
-                                                           0.8, # beta
+                                           sliceWidths = c(1,  # S_star
+                                                           1,  # E_star
+                                                           1, # I_star
+                                                           1, # S0
+                                                           1, # I0
+                                                           0.2, # beta
                                                            0.2, # betaPrs
-                                                           0.015, # rho
+                                                           0.01, # rho
                                                            0.01, # gamma_ei
                                                            0.01, # gamma_ir
                                                            0.01 # phi
@@ -219,33 +220,10 @@ buildNode = function(x, nodeParams=NA)
                          TransitionPriors, InitContainer, SamplingControl)
     
     res$setRandomSeed(seed + 1)
-    for (i in 1:ncol(modelComponents$I_star)){
-      res$setTrace(i-1)
-    }
-    
-    # Burn in tuning parameters
-    for (i in 1:200)
-    {
-      res$simulate(10)
-      res$updateSamplingParameters(0.2, 0.05, 0.01)
-    }
-    for (i in 1:100)
-    {
-      res$simulate(100)
-      res$updateSamplingParameters(0.2, 0.05, 0.01)
-    }
-    
-    
-    for (i in 1:300)
-    {
-      res$simulate(500)
-      res$updateSamplingParameters(0.2, 0.05, 0.01)
-    }
-    res$parameterSamplingMode = 8
+    res$simulate(100000)
     res$compartmentSamplingMode = 17
-    #res$useDecorrelation = 10
-    res$performHybridStep = 20
-    
+    res$useDecorrelation = 1000
+    res$performHybridStep = 100
     # Store the model object in the global namespace of the node,
     # we can't pass these between sessions
     localModelObject <<- res
@@ -270,14 +248,14 @@ buildNode = function(x, nodeParams=NA)
                                              priorMean =  rep(0.1,ncol(modelComponents$X_RS)),
                                              priorPrecision =  rep(1,ncol(modelComponents$X_RS)))
     SamplingControl = buildSamplingControl(iterationStride=1000,
-                                           sliceWidths = c(0.26,  # S_star
-                                                           0.1,  # E_star
-                                                           0.15, # I_star
-                                                           0.22, # S0
-                                                           0.24, # I0
-                                                           0.8, # beta
+                                           sliceWidths = c(1,  # S_star
+                                                           1,  # E_star
+                                                           1, # I_star
+                                                           1, # S0
+                                                           1, # I0
+                                                           0.2, # beta
                                                            0.2, # betaPrs
-                                                           0.015, # rho
+                                                           0.01, # rho
                                                            0.01, # gamma_ei
                                                            0.01, # gamma_ir
                                                            0.01 # phi
@@ -301,27 +279,22 @@ buildNode = function(x, nodeParams=NA)
     res$setTrace(0)
     
     # Burn in tuning parameters
-    for (i in 1:200)
-    {
-      res$simulate(10)
-      res$updateSamplingParameters(0.2, 0.05, 0.01)
-    }
-    for (i in 1:100)
-    {
-      res$simulate(100)
-      res$updateSamplingParameters(0.2, 0.05, 0.01)
-    }
+    #for (i in 1:1000)
+    #{
+    #  res$simulate(20)
+    #  res$updateSamplingParameters(0.1, 0.01, 0.01)
+    #}
+    #for (i in 1:1000)
+    #{
+    #  res$simulate(100)
+    #  res$updateSamplingParameters(0.05, 0.001, 0.001)
+    #}
     
-    
-    for (i in 1:300)
-    {
-      res$simulate(500)
-      res$updateSamplingParameters(0.2, 0.05, 0.01)
-    }
-    res$parameterSamplingMode = 8
+    #res$parameterSamplingMode = 8
+    res$simulate(100000)
     res$compartmentSamplingMode = 17
-    #res$useDecorrelation = 10
-    res$performHybridStep = 20
+    res$useDecorrelation = 1000
+    res$performHybridStep = 100
     
     # Store the model object in the global namespace of the node,
     # we can't pass these between sessions
@@ -334,12 +307,6 @@ buildNode = function(x, nodeParams=NA)
 additionalIterations = function(iterationParams)
 {  
   localModelObject$simulate(iterationParams$convergenceSampleSize)
-  if (iterationParams$updateSamplingParams)
-  {
-    localModelObject$updateSamplingParameters(iterationParams$targetAcceptanceRatio, 
-                                              0.05,
-                                              iterationParams$proportionChange)
-  }
 }
 
 finishSimulation = function(iterationNumber)
