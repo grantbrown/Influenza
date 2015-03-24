@@ -41,8 +41,8 @@ monthlyTemp = summarize(group_by(temp, region, year, month), avgTemp = mean(temp
 buildParams = function(convergenceSampleSize=20000,
                        convergenceCriterion = 1.05, 
                        extraR0Iterations = 100, 
-                       iterationStride = 1000){
-  selectedYears = c(2007,2008, 2009,2010)
+                       iterationStride = 100){
+  selectedYears = c(2008,2009,2010)
   singleLocation = TRUE
   cases = filter(select(read.csv("../Data/DataProcessing/processedDataNoSmooth.csv"),
                          -timeIndex),
@@ -128,12 +128,12 @@ buildParams = function(convergenceSampleSize=20000,
                          X_RS=X_prs,
                          Z=Z,
                          dmList=dmList,
-                         beta_SE=c(-4, rep(0, ncol(Z))),
+                         beta_SE=c(-4, rep(0.1, ncol(Z))),
                          beta_RS=rep(0.1, ncol(X_prs)),
                          gamma_ei=1, # incubation is 1-4 days, so weekly data transition prob is almost 1
                          gamma_ir=0.5, # 5-7 day infectious period
                          singleLocation=singleLocation,
-                         effectiveTransitionSampleSize=1000
+                         effectiveTransitionSampleSize=10000
   )
   
   modelParams = list(list(seed=1901924, 
@@ -176,7 +176,8 @@ buildNode = function(x, nodeParams=NA)
   
   if (!modelComponents$singleLocation){
     DataModel = buildDataModel(modelComponents$I_star, 
-                               type = "identity")
+                               type = "overdispersion",
+			       phi=1)
     
     priorBetaIntercept = log(mean(-log(1-(modelComponents$I_star/(modelComponents$N))))) 
     ExposureModel = buildExposureModel_depricated(modelComponents$X, modelComponents$Z, 
@@ -204,7 +205,7 @@ buildNode = function(x, nodeParams=NA)
                                                            0.01, # gamma_ir
                                                            0.01 # phi
                                            ))
-    DistanceModel = buildDistanceModel(modelComponents$dmList, priorAlpha = 5, priorBeta = 100)
+    DistanceModel = buildDistanceModel(modelComponents$dmList, priorAlpha = 5, priorBeta = 50)
     TransitionPriors = buildTransitionPriorsFromProbabilities(1-exp(-modelComponents$gamma_ei), 
                                                               1-exp(-modelComponents$gamma_ir), 
                                                               modelComponents$effectiveTransitionSampleSize,
@@ -220,7 +221,7 @@ buildNode = function(x, nodeParams=NA)
                          TransitionPriors, InitContainer, SamplingControl)
     
     res$setRandomSeed(seed + 1)
-    res$simulate(100000)
+    res$simulate(10000)
     res$compartmentSamplingMode = 17
     res$useDecorrelation = 1000
     res$performHybridStep = 100
@@ -230,10 +231,11 @@ buildNode = function(x, nodeParams=NA)
     return(list("model"=res,
                 "fileName"=outFileName)) 
   }
-  else{
+  else{    
     DataModel = buildDataModel(modelComponents$I_star[,8], 
-                               type = "identity")
-    
+                               type = "overdispersion",
+			       phi=2)
+
     priorBetaIntercept = log(mean(-log(1-(modelComponents$I_star[,8]/(modelComponents$N[,8]))))) 
     ExposureModel = buildExposureModel_depricated(modelComponents$X[8,,drop=FALSE], 
                                                   modelComponents$Z[(7*(nrow(modelComponents$I_star))+1):(8*nrow(modelComponents$I_star)),], 
@@ -248,17 +250,17 @@ buildNode = function(x, nodeParams=NA)
                                              priorMean =  rep(0.1,ncol(modelComponents$X_RS)),
                                              priorPrecision =  rep(1,ncol(modelComponents$X_RS)))
     SamplingControl = buildSamplingControl(iterationStride=1000,
-                                           sliceWidths = c(1,  # S_star
-                                                           1,  # E_star
-                                                           1, # I_star
-                                                           1, # S0
-                                                           1, # I0
-                                                           0.2, # beta
-                                                           0.2, # betaPrs
+                                           sliceWidths = c(0.2,  # S_star
+                                                           0.2,  # E_star
+                                                           0.2, # I_star
+                                                           0.2, # S0
+                                                           0.2, # I0
+                                                           0.01, # beta
+                                                           0.01, # betaPrs
                                                            0.01, # rho
                                                            0.01, # gamma_ei
                                                            0.01, # gamma_ir
-                                                           0.01 # phi
+                                                           0.05 # phi
                                            ))
     DistanceModel = buildDistanceModel(list(matrix(0)))
     TransitionPriors = buildTransitionPriorsFromProbabilities(1-exp(-modelComponents$gamma_ei), 
@@ -291,11 +293,11 @@ buildNode = function(x, nodeParams=NA)
     #}
     
     #res$parameterSamplingMode = 8
-    res$simulate(100000)
+
     res$compartmentSamplingMode = 17
-    res$useDecorrelation = 1000
+    res$useDecorrelation = 110
     res$performHybridStep = 100
-    
+    res$simulate(10000)
     # Store the model object in the global namespace of the node,
     # we can't pass these between sessions
     localModelObject <<- res
